@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Automation Learning Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        /* Base Reset & Variables - Modified to a richer, darker Bone/Warm Sand theme */
+        :root {
+            --bg-color: #e6dfd3; /* Darker bone / warm sand tone */
+            --card-bg: #fdfbf7; /* Slightly off-white card for high contrast against bone */
+            --primary: #1d4ed8; /* Darker blue accent */
+            --primary-hover: #1e40af;
+            --text-main: #0f172a; /* Deep charcoal for sharp contrast */
+            --text-muted: #475569;
+            --border: #cbd5e1; /* Clear darker borders */
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.15), 0 2px 4px -2px rgb(0 0 0 / 0.15);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 2rem 1rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header Styling */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            font-weight: 700;
+            letter-spacing: -0.05em;
+        }
+
+        /* Dashboard Elements & Layouts */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Filter Section Layout */
+        .filters-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* Text input support for PAD typing simulations */
+        input[type="text"], select, input[type="file"] {
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            outline: none;
+            background: #fff;
+            transition: var(--transition);
+            width: 100%;
+            color: var(--text-main);
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+
+        /* KPI Cards Layout */
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            text-align: center;
+            border-left: 5px solid var(--primary);
+        }
+
+        .kpi-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* Charts Layout */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+
+        .chart-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        /* Leaderboards Layout */
+        .leaderboards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .table-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Responsive Fixes */
+        @media (max-width: 768px) {
+            .charts-container, .leaderboards-container {
+                grid-template-columns: 1fr;
+            }
+            .chart-wrapper {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>AI Automation Learning</h1>
+    </header>
+
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="filters-panel">
+            <div class="filter-group">
+                <label for="upload-file">Upload Dataset (CSV/Excel)</label>
+                <input type="file" id="upload-file" accept=".csv, .xlsx, .xls">
+            </div>
+            <div class="filter-group">
+                <label for="start-date">From Date (DD-MMM-YY or YYYY-MM-DD)</label>
+                <input type="text" id="start-date" placeholder="e.g. 01-Jan-26">
+            </div>
+            <div class="filter-group">
+                <label for="end-date">To Date (DD-MMM-YY or YYYY-MM-DD)</label>
+                <input type="text" id="end-date" placeholder="e.g. 31-Dec-26">
+            </div>
+            <div class="filter-group">
+                <div class="btn-container">
+                    <button class="btn btn-secondary" id="btn-refresh">Refresh</button>
+                    <button class="btn btn-primary" id="btn-download">Download Excel</button>
+                </div>
+            </div>
+        </div>
+        <div class="filter-group" style="max-width: 300px;">
+            <label for="region-filter">Filter by Region (Country)</label>
+            <select id="region-filter">
+                <option value="All">All Regions</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="kpi-container">
+        <div class="card kpi-card">
+            <div class="kpi-title">Total Sales</div>
+            <div class="kpi-value" id="kpi-sales">$0.00</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-title">Total Cost</div>
+            <div class="kpi-value" id="kpi-cost">$0.00</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-title">GP %</div>
+            <div class="kpi-value" id="kpi-gp">0.00%</div>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="card chart-card">
+            <h3 id="left-chart-title">Country-wise Sales</h3>
+            <div class="chart-wrapper">
+                <canvas id="leftChart"></canvas>
+            </div>
+        </div>
+        <div class="card chart-card">
+            <h3 id="right-chart-title">Region-wise Sales</h3>
+            <div class="chart-wrapper">
+                <canvas id="rightChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="leaderboards-container">
+        <div class="card table-card">
+            <h3>Top 10 Country Sales Leaderboard</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Country</th>
+                            <th>Total Sales</th>
+                            <th>Total Cost</th>
+                            <th>GP%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="country-leaderboard">
+                        <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No data available</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card table-card">
+            <h3>Top 10 Location Sales Leaderboard</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Location</th>
+                            <th>Total Sales</th>
+                            <th>Total Cost</th>
+                            <th>GP%</th>
+                        </tr>
+                    </thead>
+                    <tbody id="location-leaderboard">
+                        <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No data available</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global Dataset state references
+    let rawDataset = [];
+    let filteredDataset = [];
+    let leftChartInstance = null;
+    let rightChartInstance = null;
+
+    // Month mapping references for custom text-parsing configurations
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    // DOM Elements Mapping
+    const fileUpload = document.getElementById('upload-file');
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    const regionFilter = document.getElementById('region-filter');
+    const btnRefresh = document.getElementById('btn-refresh');
+    const btnDownload = document.getElementById('btn-download');
+    const leftChartTitle = document.getElementById('left-chart-title');
+    const rightChartTitle = document.getElementById('right-chart-title');
+
+    // Parse custom manual strings to allow PAD integration workflows
+    function parseCustomDate(dateStr) {
+        if (!dateStr) return null;
+        dateStr = dateStr.trim();
+        
+        const ddmmyyRegex = /^(\d{1,2})[-/]([A-Za-z]{3})[-/](\d{2,4})$/;
+        const match = dateStr.match(ddmmyyRegex);
+        
+        if (match) {
+            const day = parseInt(match[1], 10);
+            const monthStr = match[2].toLowerCase();
+            let year = parseInt(match[3], 10);
+            
+            if (year < 100) {
+                year += (year >= 70) ? 1900 : 2000;
+            }
+            
+            const monthIndex = MONTHS.findIndex(m => m.toLowerCase() === monthStr);
+            if (monthIndex !== -1) {
+                return new Date(year, monthIndex, day);
+            }
+        }
+        
+        const standardParsed = Date.parse(dateStr);
+        return !isNaN(standardParsed) ? new Date(standardParsed) : null;
+    }
+
+    // Format utility for standard output strings (DD-MMM-YY)
+    function formatCustomDate(dateObj) {
+        if (!dateObj || !(dateObj instanceof Date) || isNaN(dateObj.getTime())) return "";
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = MONTHS[dateObj.getMonth()];
+        const year = String(dateObj.getFullYear()).slice(-2);
+        return `${day}-${month}-${year}`;
+    }
+
+    // Initialize unified dual chart instances on load
+    function initCharts() {
+        const ctxLeft = document.getElementById('leftChart').getContext('2d');
+        leftChartInstance = new Chart(ctxLeft, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Net Sale Amount', data: [], backgroundColor: '#1d4ed8' }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        const ctxRight = document.getElementById('rightChart').getContext('2d');
+        rightChartInstance = new Chart(ctxRight, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Net Sale Amount', data: [], borderColor: '#10b981', backgroundColor: '#10b981', fill: false, tension: 0.2 }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // Parse files safely utilizing SheetJS engine allocations
+    fileUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const data = evt.target.result;
+            const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            rawDataset = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            
+            normalizeData();
+            populateRegionFilter();
+            processDashboardData();
+        };
+        reader.readAsBinaryString(file);
+    });
+
+    // Clean formatting and standard types across data rows
+    function normalizeData() {
+        rawDataset.forEach(row => {
+            if (row['Date'] && !(row['Date'] instanceof Date)) {
+                row.normalizedDate = parseCustomDate(row['Date'].toString());
+            } else if (row['Date'] instanceof Date) {
+                row.normalizedDate = row['Date'];
+            } else {
+                row.normalizedDate = null;
+            }
+
+            row['Sale Qty'] = parseFloat(row['Sale Qty']) || 0;
+            row['Net Sale Amount'] = parseFloat(row['Net Sale Amount']) || 0;
+            row['Cost Amount'] = parseFloat(row['Cost Amount']) || 0;
+        });
+    }
+
+    // Populate distinct regional choices dynamically
+    function populateRegionFilter() {
+        const countries = new Set();
+        rawDataset.forEach(row => {
+            if (row['Country']) countries.add(row['Country'].toString().trim());
+        });
+
+        regionFilter.innerHTML = '<option value="All">All Regions</option>';
+        Array.from(countries).sort().forEach(country => {
+            const opt = document.createElement('option');
+            opt.value = country;
+            opt.textContent = country;
+            regionFilter.appendChild(opt);
+        });
+    }
+
+    // Process visualization sets dynamically applying condition structures
+    function processDashboardData() {
+        if (!rawDataset || rawDataset.length === 0) return;
+
+        const startVal = parseCustomDate(startDateInput.value);
+        const endVal = parseCustomDate(endDateInput.value);
+        if(endVal) endVal.setHours(23, 59, 59, 999);
+
+        const selectedRegion = regionFilter.value;
+
+        filteredDataset = rawDataset.filter(row => {
+            if (selectedRegion !== 'All' && row['Country'] && row['Country'].toString().trim() !== selectedRegion) {
+                return false;
+            }
+            if (row.normalizedDate) {
+                if (startVal && row.normalizedDate < startVal) return false;
+                if (endVal && row.normalizedDate > endVal) return false;
+            }
+            return true;
+        });
+
+        updateKPIs();
+        updateCharts(selectedRegion);
+        updateLeaderboards();
+    }
+
+    function updateKPIs() {
+        let totalSales = 0;
+        let totalCost = 0;
+
+        filteredDataset.forEach(row => {
+            totalSales += row['Net Sale Amount'];
+            totalCost += row['Cost Amount'];
+        });
+
+        const gpPercent = totalSales > 0 ? ((totalSales - totalCost) / totalSales) * 100 : 0;
+
+        document.getElementById('kpi-sales').textContent = '$' + totalSales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('kpi-cost').textContent = '$' + totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('kpi-gp').textContent = gpPercent.toFixed(2) + '%';
+    }
+
+    // Swaps chart types and aggregates metrics dynamically according to the Region Filter option chosen
+    function updateCharts(selectedRegion) {
+        const leftData = {};
+        const rightData = {};
+
+        if (selectedRegion === 'All') {
+            // Configuration A: All Regions chosen -> Display Country and Region sales metrics
+            leftChartTitle.textContent = "Country-wise Sales";
+            rightChartTitle.textContent = "Region-wise Sales";
+
+            // Update configuration layout variants dynamically to match requested state designs
+            leftChartInstance.config.type = 'bar';
+            rightChartInstance.config.type = 'line';
+
+            filteredDataset.forEach(row => {
+                const country = row['Country'] ? row['Country'].toString().trim() : 'Unknown';
+                leftData[country] = (leftData[country] || 0) + row['Net Sale Amount'];
+                rightData[country] = (rightData[country] || 0) + row['Net Sale Amount'];
+            });
+        } else {
+            // Configuration B: Explicit single country chosen -> Replace with Category (Bar) and Location (Chart) visuals
+            leftChartTitle.textContent = "Category-wise Sales";
+            rightChartTitle.textContent = "Location-wise Sales";
+
+            leftChartInstance.config.type = 'bar';
+            rightChartInstance.config.type = 'bar'; // Render Location metric data dynamically as requested
+
+            filteredDataset.forEach(row => {
+                const category = row['Category'] ? row['Category'].toString().trim() : 'Unknown';
+                const location = row['Location'] ? row['Location'].toString().trim() : 'Unknown';
+                leftData[category] = (leftData[category] || 0) + row['Net Sale Amount'];
+                rightData[location] = (rightData[location] || 0) + row['Net Sale Amount'];
+            });
+        }
+
+        // Apply visual updates to Left Chart Frame safely
+        leftChartInstance.data.labels = Object.keys(leftData);
+        leftChartInstance.data.datasets[0].data = Object.values(leftData);
+        leftChartInstance.update();
+
+        // Apply visual updates to Right Chart Frame safely
+        rightChartInstance.data.labels = Object.keys(rightData);
+        rightChartInstance.data.datasets[0].data = Object.values(rightData);
+        rightChartInstance.update();
+    }
+
+    function updateLeaderboards() {
+        const countryAgg = {};
+        const locationAgg = {};
+
+        filteredDataset.forEach(row => {
+            const cName = row['Country'] ? row['Country'].toString().trim() : 'Unknown';
+            const lName = row['Location'] ? row['Location'].toString().trim() : 'Unknown';
+
+            if (!countryAgg[cName]) countryAgg[cName] = { sales: 0, cost: 0 };
+            countryAgg[cName].sales += row['Net Sale Amount'];
+            countryAgg[cName].cost += row['Cost Amount'];
+
+            if (!locationAgg[lName]) locationAgg[lName] = { sales: 0, cost: 0 };
+            locationAgg[lName].sales += row['Net Sale Amount'];
+            locationAgg[lName].cost += row['Cost Amount'];
+        });
+
+        const sortedCountries = Object.keys(countryAgg).map(key => ({
+            name: key, ...countryAgg[key], gp: countryAgg[key].sales > 0 ? ((countryAgg[key].sales - countryAgg[key].cost) / countryAgg[key].sales) * 100 : 0
+        })).sort((a, b) => b.sales - a.sales).slice(0, 10);
+
+        const sortedLocations = Object.keys(locationAgg).map(key => ({
+            name: key, ...locationAgg[key], gp: locationAgg[key].sales > 0 ? ((locationAgg[key].sales - locationAgg[key].cost) / locationAgg[key].sales) * 100 : 0
+        })).sort((a, b) => b.sales - a.sales).slice(0, 10);
+
+        renderTableBody('country-leaderboard', sortedCountries);
+        renderTableBody('location-leaderboard', sortedLocations);
+    }
+
+    function renderTableBody(elementId, dataset) {
+        const tbody = document.getElementById(elementId);
+        if (dataset.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No data available</td></tr>`;
+            return;
+        }
+
+        let htmlRows = "";
+        dataset.forEach((row, index) => {
+            htmlRows += `<tr>
+                <td><strong>${index + 1}</strong></td>
+                <td>${row.name}</td>
+                <td>$${row.sales.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>$${row.cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>${row.gp.toFixed(2)}%</td>
+            </tr>`;
+        });
+        tbody.innerHTML = htmlRows;
+    }
+
+    // Export dataset out cleanly to Excel format (.xlsx)
+    function exportToExcel() {
+        if (filteredDataset.length === 0) {
+            alert("No filtered data available to download.");
+            return;
+        }
+
+        const headers = ['Date', 'Country', 'Location', 'Category', 'Sub-Category', 'Sale Qty', 'Net Sale Amount', 'Cost Amount'];
+        
+        const excelRows = filteredDataset.map(row => {
+            return {
+                'Date': formatCustomDate(row.normalizedDate),
+                'Country': row['Country'],
+                'Location': row['Location'],
+                'Category': row['Category'],
+                'Sub-Category': row['Sub-Category'],
+                'Sale Qty': row['Sale Qty'],
+                'Net Sale Amount': row['Net Sale Amount'],
+                'Cost Amount': row['Cost Amount']
+            };
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(excelRows, { header: headers });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Data");
+
+        XLSX.writeFile(workbook, "filtered_dataset.xlsx");
+    }
+
+    // Assign operational event hooks
+    btnRefresh.addEventListener('click', processDashboardData);
+    regionFilter.addEventListener('change', processDashboardData);
+    btnDownload.addEventListener('click', exportToExcel);
+
+    // Initial load instantiation loop
+    window.onload = function() {
+        initCharts();
+    };
+</script>
+
+</body>
+</html>
